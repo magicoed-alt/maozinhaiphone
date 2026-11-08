@@ -87,33 +87,35 @@ img{-webkit-user-drag:none;pointer-events:none}
   .time{font-size:15vmin;top:12vh}
 }
 
+#app{position:absolute;left:0;top:0;width:100%;height:var(--H,100vh)}
 /* ---------- iPhone (medidas tiradas do teclado real do iOS) ---------- */
-@media (max-width:600px){
-  .sb{top:2.2vw;height:6vw;padding:0 5vw;font-size:3.4vw}
-  .sb svg{height:3.4vw}
-  .lockicon{top:15vw;width:4.6vw}
-  .date{top:12.8vh;font-size:4.4vw}
-  .time{top:14.6vh;font-size:22vw}
-  .hint{bottom:9vw;font-size:3.5vw}
-  .homebar{bottom:2.2vw;width:34vw;height:1.2vw}
-  .chevron{bottom:14vw;width:5vw}
-  #passWrap .title{top:calc(20.2vh - 3vw);font-size:5vw;font-weight:400;line-height:6vw}
-  #dots{top:calc(24.3vh - 1.5vw);gap:5.6vw}
-  #dots i{width:3vw;height:3vw;border-width:.35vw}
-  #pad{top:35vh;grid-template-columns:repeat(3,20.6vw);grid-auto-rows:20.6vw;gap:4.5vw 5.4vw}
-  .key{border:.25vw solid rgba(255,255,255,.28);background:rgba(255,255,255,.2)}
+@media (max-width:600px),(max-height:600px){
+  .sb{top:calc(2.2*var(--vw));height:calc(6*var(--vw));padding:0 calc(5*var(--vw));font-size:calc(3.4*var(--vw))}
+  .sb svg{height:calc(3.4*var(--vw))}
+  .lockicon{top:calc(15*var(--vw));width:calc(4.6*var(--vw))}
+  .date{top:calc(12.8*var(--vh));font-size:calc(4.4*var(--vw))}
+  .time{top:calc(14.6*var(--vh));font-size:calc(22*var(--vw))}
+  .hint{bottom:calc(9*var(--vw));font-size:calc(3.5*var(--vw))}
+  .homebar{bottom:calc(2.2*var(--vw));width:calc(34*var(--vw));height:calc(1.2*var(--vw))}
+  .chevron{bottom:calc(14*var(--vw));width:calc(5*var(--vw))}
+  #passWrap .title{top:calc(calc(20.2*var(--vh)) - calc(3*var(--vw)));font-size:calc(5*var(--vw));font-weight:400;line-height:calc(6*var(--vw))}
+  #dots{top:calc(calc(24.3*var(--vh)) - calc(1.5*var(--vw)));gap:calc(5.6*var(--vw))}
+  #dots i{width:calc(3*var(--vw));height:calc(3*var(--vw));border-width:calc(.35*var(--vw))}
+  #pad{top:calc(35*var(--vh));grid-template-columns:repeat(3,calc(20.6*var(--vw)));grid-auto-rows:calc(20.6*var(--vw));gap:calc(4.5*var(--vw)) calc(5.4*var(--vw))}
+  .key{border:calc(.25*var(--vw)) solid rgba(255,255,255,.28);background:rgba(255,255,255,.2)}
   .key.empty{border-color:transparent;background:transparent}
-  .key b{font-size:9.4vw;margin-top:-1.4vw}
-  .key small{font-size:2.35vw;height:2.4vw;margin-top:.2vw}
-  .pbtn{bottom:auto;top:calc(92vh - 3vw);font-size:3.9vw;line-height:6vw;padding:0;width:20.6vw;text-align:center}
-  #emerg{left:calc(50% - 36vw + 10.3vw - 10.3vw);left:calc(50% - 26vw - 10.3vw)}
-  #cancel{right:calc(50% - 26vw - 10.3vw)}
+  .key b{font-size:calc(9.4*var(--vw));margin-top:calc(-1.4*var(--vw))}
+  .key small{font-size:calc(2.35*var(--vw));height:calc(2.4*var(--vw));margin-top:calc(.2*var(--vw))}
+  .pbtn{bottom:auto;top:calc(calc(92*var(--vh)) - calc(3*var(--vw)));font-size:calc(3.9*var(--vw));line-height:calc(6*var(--vw));padding:0;width:calc(20.6*var(--vw));text-align:center}
+  #emerg{left:calc(50% - calc(36*var(--vw)) + calc(10.3*var(--vw)) - calc(10.3*var(--vw)));left:calc(50% - calc(26*var(--vw)) - calc(10.3*var(--vw)))}
+  #cancel{right:calc(50% - calc(26*var(--vw)) - calc(10.3*var(--vw)))}
 }
 
 </style>
 </head>
 <body>
 
+<div id="app">
 <div id="scene">
   <div id="felt"></div>
   <div id="stage">
@@ -158,6 +160,7 @@ img{-webkit-user-drag:none;pointer-events:none}
   </div>
 </div>
 
+</div>
 <script>
 /* ===== Mão Elegante — lógica do app ===== */
 (function(){
@@ -181,15 +184,29 @@ function tween(from,to,dur,ease,fn){
 }
 
 /* ---------- layout ---------- */
+let ROT=0,OW=0;
+function loc(e){            // coordenadas do toque no sistema "retrato" do app
+  if(!ROT)return {x:e.clientX,y:e.clientY,w:innerWidth};
+  const t=ROT*Math.PI/180,dx=e.clientX-innerWidth/2,dy=e.clientY-innerHeight/2;
+  return {x:dx*Math.cos(t)+dy*Math.sin(t)+OW/2,y:-dx*Math.sin(t)+dy*Math.cos(t)+(Math.max(innerWidth,innerHeight))/2,w:OW};
+}
 function layout(){
-  const vw=innerWidth;let vh=innerHeight;
+  const land=innerWidth>innerHeight&&Math.min(innerWidth,innerHeight)<600;
+  const app=$('app');
+  if(land){                  // travar em retrato: gira o app no sentido contrário ao do aparelho
+    const o=(typeof window.orientation==='number'&&window.orientation!==0)?window.orientation:90;
+    ROT=-o;OW=innerHeight;
+    app.style.cssText='position:absolute;left:'+(innerWidth/2-innerHeight/2)+'px;top:'+(innerHeight/2-innerWidth/2)+'px;width:'+innerHeight+'px;height:'+innerWidth+'px;transform:rotate('+ROT+'deg);transform-origin:50% 50%';
+  }else{ROT=0;OW=innerWidth;app.style.cssText='';}
+  const vw=land?innerHeight:innerWidth;let vh=land?innerWidth:innerHeight;
+  document.documentElement.style.setProperty('--vw',(vw/100)+'px');document.documentElement.style.setProperty('--vh',(vh/100)+'px');
   const sa=(navigator.standalone===true)||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
-  if(sa){const L=Math.max(screen.width,screen.height),S=Math.min(screen.width,screen.height);vh=Math.max(vh,innerHeight>innerWidth?L:S);}
-  document.documentElement.style.setProperty('--V',vh+'px');document.documentElement.style.setProperty('--H',(Math.max(vh,innerHeight)+(sa?120:0))+'px');
+  if(sa&&!land){const L=Math.max(screen.width,screen.height),S=Math.min(screen.width,screen.height);vh=Math.max(vh,innerHeight>innerWidth?L:S);}
+  document.documentElement.style.setProperty('--V',vh+'px');document.documentElement.style.setProperty('--H',land?vh+'px':(Math.max(vh,innerHeight)+(sa?120:0))+'px');
   const wasPhone=PHONE;PHONE=vw<600;
   if(PHONE){
     scale=383.3/(700*RIG_SCALE);            // carta em tamanho real (2,5 pol = 63,5 mm)
-    STAGE_W=vw/scale;STAGE_H=vh/scale;CX=STAGE_W/2+16;Y_REST=PH_REST;Y_HOLD=(vh-26-826.9)/scale;
+    STAGE_W=vw/scale;STAGE_H=vh/scale;CX=STAGE_W/2+16;Y_REST=PH_REST;Y_HOLD=STAGE_H-104-826.9/scale;
     offX=0;offY=0;
   }else{
     STAGE_W=1536;STAGE_H=2048;CX=768;Y_REST=590;Y_HOLD=512;
@@ -270,9 +287,9 @@ async function returnHand(){
 }
 function onSceneTap(e){
   if(state==='locked')return;
-  const x=e.clientX,w=innerWidth;
+  const L=loc(e),x=L.x,w=L.w;
   if(x<w*0.18||x>w*0.82)return;          // só reage no "corredor" central
-  if(e.clientX<110&&e.clientY<110)return;
+  if(L.x<110&&L.y<110)return;
   if(state==='rest')sendHand(); else if(state==='holding')returnHand();
 }
 
